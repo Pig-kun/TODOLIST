@@ -181,19 +181,19 @@ class MainWindow:
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=8, fill=tk.Y)
 
         ttk.Label(toolbar, text="筛选:", font=FONT_NORMAL).pack(side=tk.LEFT, padx=(2, 2))
-        self.filter_var = tk.StringVar(value="all")
+        self.filter_var = tk.StringVar(value="全部")
         filter_combo = ttk.Combobox(
-            toolbar, textvariable=self.filter_var, values=["all", "pending", "in_progress", "done"],
+            toolbar, textvariable=self.filter_var, values=["全部", "待办", "进行中", "已完成"],
             state="readonly", width=8
         )
         filter_combo.pack(side=tk.LEFT, padx=2)
         self.filter_combo = filter_combo
 
         ttk.Label(toolbar, text="排序:", font=FONT_NORMAL).pack(side=tk.LEFT, padx=(8, 2))
-        self.sort_var = tk.StringVar(value="created_at")
+        self.sort_var = tk.StringVar(value="创建时间")
         sort_combo = ttk.Combobox(
             toolbar, textvariable=self.sort_var,
-            values=["created_at", "deadline", "elapsed_seconds", "title"],
+            values=["创建时间", "截止日期", "用时", "名称"],
             state="readonly", width=10
         )
         sort_combo.pack(side=tk.LEFT, padx=2)
