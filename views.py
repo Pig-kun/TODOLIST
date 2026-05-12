@@ -2,20 +2,31 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
 
+# ------- Palette -------
+C_PRIMARY = "#4a6cf7"
+C_PRIMARY_HOVER = "#3b5de7"
+C_SUCCESS = "#10b981"
+C_WARNING = "#f59e0b"
+C_DANGER = "#ef4444"
+C_BG = "#f0f2f5"
+C_CARD = "#ffffff"
+C_TEXT = "#1e293b"
+C_TEXT_SEC = "#64748b"
+C_BORDER = "#e2e8f0"
+C_GROUP = "#eef2ff"
+C_GROUP_FG = "#3730a3"
+C_ROW_ODD = "#ffffff"
+C_ROW_EVEN = "#f8fafc"
+C_PROGRESS = "#2563eb"
+C_DONE = "#94a3b8"
+C_OVERDUE = "#dc2626"
+C_TIMER_BG = "#fefce8"
+C_TIMER_FG = "#92400e"
+
 FONT_NORMAL = ("Microsoft YaHei UI", 10)
 FONT_BOLD = ("Microsoft YaHei UI", 10, "bold")
 FONT_SMALL = ("Microsoft YaHei UI", 9)
 PAD = {"padx": 6, "pady": 4}
-
-COLOR_BG = "#f5f6f8"
-COLOR_GROUP = "#e3edfc"
-COLOR_GROUP_FG = "#1a3a5c"
-COLOR_ROW_ODD = "#ffffff"
-COLOR_ROW_EVEN = "#f8f9fb"
-COLOR_PROGRESS = "#1a73e8"
-COLOR_DONE = "#80868b"
-COLOR_OVERDUE = "#d93025"
-COLOR_DEADLINE = "#5f6368"
 
 
 def format_seconds(total_seconds):
@@ -120,25 +131,27 @@ class TaskDialog(tk.Toplevel):
         self.result = None
         is_edit = task is not None
         self.title("编辑任务" if is_edit else "新增任务")
-        self.geometry("420x440")
+        self.geometry("440x460")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
+        self.configure(bg=C_BG)
 
-        frame = ttk.Frame(self, padding=12)
-        frame.pack(fill=tk.BOTH, expand=True)
+        frame = tk.Frame(self, bg=C_CARD, padx=16, pady=12, highlightbackground=C_BORDER, highlightthickness=1)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
 
-        ttk.Label(frame, text="任务名称 *", font=FONT_BOLD).pack(anchor=tk.W, **PAD)
+        tk.Label(frame, text="任务名称 *", font=FONT_BOLD, bg=C_CARD, fg=C_TEXT).pack(anchor=tk.W, **PAD)
         self.title_var = tk.StringVar(value=task["title"] if is_edit else "")
-        ttk.Entry(frame, textvariable=self.title_var, width=50).pack(fill=tk.X, **PAD)
+        ttk.Entry(frame, textvariable=self.title_var, width=50, font=FONT_NORMAL).pack(fill=tk.X, **PAD)
 
-        ttk.Label(frame, text="描述", font=FONT_BOLD).pack(anchor=tk.W, **PAD)
-        self.desc_text = tk.Text(frame, height=4, width=50, font=FONT_NORMAL)
+        tk.Label(frame, text="描述", font=FONT_BOLD, bg=C_CARD, fg=C_TEXT).pack(anchor=tk.W, **PAD)
+        self.desc_text = tk.Text(frame, height=4, width=50, font=FONT_NORMAL, bg="#f8fafc", fg=C_TEXT,
+                                 relief="solid", borderwidth=1, padx=4, pady=4)
         self.desc_text.pack(fill=tk.X, **PAD)
         if is_edit and task.get("description"):
             self.desc_text.insert("1.0", task["description"])
 
-        ttk.Label(frame, text="截止时间", font=FONT_BOLD).pack(anchor=tk.W, **PAD)
+        tk.Label(frame, text="截止时间", font=FONT_BOLD, bg=C_CARD, fg=C_TEXT).pack(anchor=tk.W, **PAD)
         self.dt_picker = DateTimePicker(frame)
         self.dt_picker.pack(anchor=tk.W, **PAD)
         if is_edit and task.get("deadline"):
@@ -146,7 +159,7 @@ class TaskDialog(tk.Toplevel):
 
         row2 = ttk.Frame(frame)
         row2.pack(fill=tk.X, **PAD)
-        ttk.Label(row2, text="预计用时(分钟)", font=FONT_BOLD).pack(side=tk.LEFT)
+        tk.Label(row2, text="预计用时(分钟)", font=FONT_BOLD, bg=C_CARD, fg=C_TEXT).pack(side=tk.LEFT)
         self.est_var = tk.StringVar(value=str(task["estimated_minutes"]) if (is_edit and task.get("estimated_minutes")) else "0")
         ttk.Spinbox(row2, textvariable=self.est_var, from_=0, to=9999, width=6).pack(side=tk.LEFT, padx=6)
 
@@ -161,10 +174,14 @@ class TaskDialog(tk.Toplevel):
             self.reminder_enabled.set(True)
             self.reminder_var.set(str(task["reminder_minutes"]))
 
-        btn_row = ttk.Frame(frame)
-        btn_row.pack(pady=12)
-        ttk.Button(btn_row, text="保存", command=self._on_save, width=10).pack(side=tk.LEFT, padx=6)
-        ttk.Button(btn_row, text="取消", command=self._on_cancel, width=10).pack(side=tk.LEFT, padx=6)
+        btn_row = tk.Frame(frame, bg=C_CARD)
+        btn_row.pack(pady=14)
+        tk.Button(btn_row, text="保存", command=self._on_save, width=10, font=FONT_BOLD,
+                  bg=C_PRIMARY, fg="white", activebackground=C_PRIMARY_HOVER, activeforeground="white",
+                  relief="flat", cursor="hand2", padx=8, pady=3).pack(side=tk.LEFT, padx=6)
+        tk.Button(btn_row, text="取消", command=self._on_cancel, width=10, font=FONT_NORMAL,
+                  bg="#e2e8f0", fg=C_TEXT, activebackground="#cbd5e1", activeforeground=C_TEXT,
+                  relief="flat", cursor="hand2", padx=8, pady=3).pack(side=tk.LEFT, padx=6)
 
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
 
@@ -191,27 +208,32 @@ class CleanupDialog(tk.Toplevel):
         super().__init__(parent)
         self.result = None
         self.title("清理缓存")
-        self.geometry("340x160")
+        self.geometry("360x180")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
+        self.configure(bg=C_BG)
 
-        frame = ttk.Frame(self, padding=12)
-        frame.pack(fill=tk.BOTH, expand=True)
+        frame = tk.Frame(self, bg=C_CARD, padx=16, pady=12, highlightbackground=C_BORDER, highlightthickness=1)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
 
-        ttk.Label(frame, text="删除多少天前已完成的任务？", font=FONT_NORMAL).pack(anchor=tk.W, **PAD)
+        tk.Label(frame, text="删除多少天前已完成的任务？", font=FONT_NORMAL, bg=C_CARD, fg=C_TEXT).pack(anchor=tk.W, **PAD)
         self.days_var = tk.StringVar(value="30")
-        row = ttk.Frame(frame)
+        row = tk.Frame(frame, bg=C_CARD)
         row.pack(fill=tk.X, **PAD)
         ttk.Spinbox(row, textvariable=self.days_var, from_=1, to=365, width=6).pack(side=tk.LEFT, padx=4)
-        ttk.Label(row, text="天", font=FONT_NORMAL).pack(side=tk.LEFT)
+        tk.Label(row, text="天", font=FONT_NORMAL, bg=C_CARD, fg=C_TEXT).pack(side=tk.LEFT)
 
-        ttk.Label(frame, text="清理后还会压缩数据库以释放空间。", font=("Microsoft YaHei UI", 8), foreground="gray").pack(anchor=tk.W, **PAD)
+        tk.Label(frame, text="清理后还会压缩数据库以释放空间。", font=FONT_SMALL, bg=C_CARD, fg=C_TEXT_SEC).pack(anchor=tk.W, **PAD)
 
-        btn_row = ttk.Frame(frame)
-        btn_row.pack(pady=10)
-        ttk.Button(btn_row, text="执行清理", command=self._on_clean, width=10).pack(side=tk.LEFT, padx=6)
-        ttk.Button(btn_row, text="取消", command=self._on_cancel, width=10).pack(side=tk.LEFT, padx=6)
+        btn_row = tk.Frame(frame, bg=C_CARD)
+        btn_row.pack(pady=12)
+        tk.Button(btn_row, text="执行清理", command=self._on_clean, width=10, font=FONT_BOLD,
+                  bg=C_WARNING, fg="white", activebackground="#d97706", activeforeground="white",
+                  relief="flat", cursor="hand2", padx=8, pady=3).pack(side=tk.LEFT, padx=6)
+        tk.Button(btn_row, text="取消", command=self._on_cancel, width=10, font=FONT_NORMAL,
+                  bg="#e2e8f0", fg=C_TEXT, activebackground="#cbd5e1", activeforeground=C_TEXT,
+                  relief="flat", cursor="hand2", padx=8, pady=3).pack(side=tk.LEFT, padx=6)
 
         self.protocol("WM_DELETE_WINDOW", self._on_cancel)
 
@@ -223,34 +245,204 @@ class CleanupDialog(tk.Toplevel):
         self.destroy()
 
 
+# ---------- Colored Button ----------
+
+class _ColorButton(tk.Frame):
+    def __init__(self, parent, text, bg, fg="white", hover_bg=None, command=None, width=9, state="normal"):
+        super().__init__(parent, bg=C_BG, highlightthickness=0)
+        self._cmd = command
+        self._bg = bg
+        self._hover_bg = hover_bg or bg
+        self._state = state
+        self._btn = tk.Label(self, text=text, font=FONT_BOLD, bg=bg, fg=fg,
+                             width=width, padx=4, pady=4, cursor="hand2",
+                             relief="flat", anchor=tk.CENTER)
+        self._btn.pack()
+        if state == "normal":
+            self._btn.bind("<Enter>", lambda e: self._btn.configure(bg=self._hover_bg))
+            self._btn.bind("<Leave>", lambda e: self._btn.configure(bg=self._bg))
+            self._btn.bind("<Button-1>", lambda e: self._cmd and self._cmd())
+        else:
+            self._btn.configure(bg="#cbd5e1", fg="#94a3b8", cursor="")
+
+    def config(self, **kwargs):
+        if "command" in kwargs:
+            self._cmd = kwargs.pop("command")
+            self._btn.bind("<Button-1>", lambda e: self._cmd and self._cmd())
+        if "state" in kwargs:
+            s = kwargs.pop("state")
+            self._state = s
+            if s == "disabled":
+                self._btn.configure(bg="#cbd5e1", fg="#94a3b8", cursor="")
+            else:
+                self._btn.configure(bg=self._bg, fg="white", cursor="hand2")
+        if "text" in kwargs:
+            self._btn.configure(text=kwargs.pop("text"))
+        super().config(**kwargs)
+
+
 # ---------- Main Window ----------
 
 class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("TODO 任务管理器")
-        self.root.geometry("920x580")
-        self.root.minsize(720, 440)
-        self.root.configure(bg=COLOR_BG)
+        self.root.geometry("960x620")
+        self.root.minsize(760, 480)
+        self.root.configure(bg=C_BG)
 
         self._build_style()
-        self._build_menu()
+        self._build_header()
         self._build_toolbar()
         self._build_task_list()
         self._build_timer_bar()
         self._build_status_bar()
+        self._build_menu()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
+    # --- Style ---
+
     def _build_style(self):
+        self.root.option_add("*Font", FONT_NORMAL)
         style = ttk.Style()
-        style.configure("Treeview", rowheight=28, font=FONT_NORMAL)
-        style.configure("Treeview.Heading", font=FONT_BOLD, padding=(4, 3))
+        available = style.theme_names()
+        if "clam" in available:
+            style.theme_use("clam")
+
+        style.configure(".", background=C_BG, foreground=C_TEXT, font=FONT_NORMAL)
+        style.configure("Treeview", rowheight=30, font=FONT_NORMAL, background=C_CARD,
+                        fieldbackground=C_CARD, borderwidth=0)
+        style.configure("Treeview.Heading", font=FONT_BOLD, padding=(6, 4),
+                        background=C_BG, foreground=C_TEXT_SEC, borderwidth=0)
+        style.map("Treeview", background=[("selected", "#dbeafe")], foreground=[("selected", C_TEXT)])
+        style.map("Treeview.Heading", background=[("active", C_BG)])
+
+        style.configure("TEntry", fieldbackground="white", borderwidth=1, relief="solid")
+        style.configure("TSpinbox", fieldbackground="white", borderwidth=1, relief="solid")
+        style.configure("TCombobox", fieldbackground="white", borderwidth=1, relief="solid")
+        style.configure("TCheckbutton", background=C_BG)
+
+        style.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
+        style.configure("TFrame", background=C_BG)
+        style.configure("TLabel", background=C_BG, foreground=C_TEXT)
+
+    # --- Header ---
+
+    def _build_header(self):
+        header = tk.Frame(self.root, bg=C_PRIMARY, padx=16, pady=10)
+        header.pack(fill=tk.X)
+        tk.Label(header, text="📋 TODO 任务管理器", font=("Microsoft YaHei UI", 16, "bold"),
+                 bg=C_PRIMARY, fg="white").pack(side=tk.LEFT)
+        tk.Label(header, text="离线 · 本地存储 · 零依赖", font=FONT_SMALL,
+                 bg=C_PRIMARY, fg="#bfdbfe").pack(side=tk.RIGHT)
+
+    # --- Toolbar ---
+
+    def _build_toolbar(self):
+        bar = tk.Frame(self.root, bg=C_CARD, padx=8, pady=6,
+                       highlightbackground=C_BORDER, highlightthickness=1)
+        bar.pack(fill=tk.X, padx=6, pady=(6, 0))
+
+        btn_frame = tk.Frame(bar, bg=C_CARD)
+        btn_frame.pack(side=tk.LEFT)
+        self.btn_add = _ColorButton(btn_frame, "＋ 新增任务", C_PRIMARY, hover_bg=C_PRIMARY_HOVER, width=10)
+        self.btn_add.pack(side=tk.LEFT, padx=2)
+        self.btn_timer = _ColorButton(btn_frame, "▶ 开始计时", C_SUCCESS, hover_bg="#059669", width=10)
+        self.btn_timer.pack(side=tk.LEFT, padx=2)
+        self.btn_pause = _ColorButton(btn_frame, "⏸ 暂停计时", C_WARNING, hover_bg="#d97706", width=10, state="disabled")
+        self.btn_pause.pack(side=tk.LEFT, padx=2)
+        self.btn_done = _ColorButton(btn_frame, "✓ 完成任务", "#6366f1", hover_bg="#4f46e5", width=10)
+        self.btn_done.pack(side=tk.LEFT, padx=2)
+        self.btn_delete = _ColorButton(btn_frame, "✕ 删除任务", C_DANGER, hover_bg="#b91c1c", width=10)
+        self.btn_delete.pack(side=tk.LEFT, padx=2)
+
+        sep = tk.Frame(bar, bg=C_BORDER, width=1, height=24)
+        sep.pack(side=tk.LEFT, padx=10)
+
+        tk.Label(bar, text="筛选", font=FONT_SMALL, bg=C_CARD, fg=C_TEXT_SEC).pack(side=tk.LEFT, padx=(2, 2))
+        self.filter_var = tk.StringVar(value="全部")
+        fc = ttk.Combobox(bar, textvariable=self.filter_var,
+                          values=["全部", "待办", "进行中", "已完成"],
+                          state="readonly", width=8, font=FONT_SMALL)
+        fc.pack(side=tk.LEFT, padx=2)
+        self.filter_combo = fc
+
+        tk.Label(bar, text="排序", font=FONT_SMALL, bg=C_CARD, fg=C_TEXT_SEC).pack(side=tk.LEFT, padx=(10, 2))
+        self.sort_var = tk.StringVar(value="创建时间")
+        sc = ttk.Combobox(bar, textvariable=self.sort_var,
+                          values=["创建时间", "截止日期", "用时", "名称"],
+                          state="readonly", width=10, font=FONT_SMALL)
+        sc.pack(side=tk.LEFT, padx=2)
+        self.sort_combo = sc
+
+        sep2 = tk.Frame(bar, bg=C_BORDER, width=1, height=24)
+        sep2.pack(side=tk.LEFT, padx=10)
+
+        self.btn_clean = _ColorButton(bar, "🧹 清理缓存", "#64748b", hover_bg="#475569", width=11)
+        self.btn_clean.pack(side=tk.RIGHT, padx=2)
+
+    # --- Task List ---
+
+    def _build_task_list(self):
+        card = tk.Frame(self.root, bg=C_CARD, padx=2, pady=2,
+                        highlightbackground=C_BORDER, highlightthickness=1)
+        card.pack(fill=tk.BOTH, expand=True, padx=6, pady=4)
+
+        columns = ("status", "title", "deadline", "elapsed", "created_at")
+        self.tree = ttk.Treeview(card, columns=columns, show="tree headings",
+                                 selectmode="browse", height=14,
+                                 padding=(4, 2))
+        self.tree.column("#0", width=210, minwidth=160, stretch=False)
+        self.tree.heading("#0", text="")
+        self.tree.heading("status", text="")
+        self.tree.column("status", width=36, anchor=tk.CENTER, stretch=False)
+        self.tree.heading("title", text="任务名称")
+        self.tree.column("title", width=250, stretch=True)
+        self.tree.heading("deadline", text="截止时间")
+        self.tree.column("deadline", width=155, anchor=tk.CENTER, stretch=False)
+        self.tree.heading("elapsed", text="用时")
+        self.tree.column("elapsed", width=65, anchor=tk.CENTER, stretch=False)
+        self.tree.heading("created_at", text="创建")
+        self.tree.column("created_at", width=80, anchor=tk.CENTER, stretch=False)
+
+        scrollbar = ttk.Scrollbar(card, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.tree.tag_configure("group", background=C_GROUP, foreground=C_GROUP_FG, font=FONT_BOLD)
+        self.tree.tag_configure("done", foreground=C_DONE, font=("Microsoft YaHei UI", 10, "overstrike"))
+        self.tree.tag_configure("in_progress", foreground=C_PROGRESS)
+        self.tree.tag_configure("overdue", foreground=C_OVERDUE)
+        self.tree.tag_configure("row_even", background=C_ROW_EVEN, foreground=C_TEXT)
+        self.tree.tag_configure("row_odd", background=C_ROW_ODD, foreground=C_TEXT)
+
+        self._status_map = {"pending": "⬜", "in_progress": "▶", "done": "✅"}
+
+    # --- Timer Bar ---
+
+    def _build_timer_bar(self):
+        self.timer_frame = tk.Frame(self.root, bg=C_TIMER_BG, padx=10, pady=6,
+                                    highlightbackground=C_BORDER, highlightthickness=1)
+        self.timer_frame.pack(fill=tk.X, padx=6, pady=(2, 0))
+        self.timer_label = tk.Label(self.timer_frame, text="⏱ 未开始计时", font=FONT_BOLD,
+                                    bg=C_TIMER_BG, fg=C_TIMER_FG)
+        self.timer_label.pack(side=tk.LEFT)
+
+    # --- Status Bar ---
+
+    def _build_status_bar(self):
+        bar = tk.Frame(self.root, bg=C_BG, padx=8, pady=4)
+        bar.pack(fill=tk.X, padx=6, pady=(0, 4))
+        self.status_label = tk.Label(bar, text="就绪", font=FONT_SMALL, bg=C_BG, fg=C_TEXT_SEC)
+        self.status_label.pack(side=tk.LEFT)
 
     # --- Menu ---
 
     def _build_menu(self):
-        menubar = tk.Menu(self.root, font=FONT_NORMAL)
+        menubar = tk.Menu(self.root, font=FONT_NORMAL, bg=C_CARD, fg=C_TEXT,
+                          activebackground=C_PRIMARY, activeforeground="white")
         self.root.config(menu=menubar)
 
         file_menu = tk.Menu(menubar, tearoff=0, font=FONT_NORMAL)
@@ -274,105 +466,7 @@ class MainWindow:
         self.menu_task = task_menu
         self.menu_tools = tools_menu
 
-    # --- Toolbar ---
-
-    def _build_toolbar(self):
-        toolbar = ttk.Frame(self.root, padding=4)
-        toolbar.pack(fill=tk.X, padx=4, pady=(4, 0))
-
-        self.btn_add = ttk.Button(toolbar, text="新增任务", width=9)
-        self.btn_add.pack(side=tk.LEFT, padx=2)
-        self.btn_timer = ttk.Button(toolbar, text="开始计时", width=9)
-        self.btn_timer.pack(side=tk.LEFT, padx=2)
-        self.btn_pause = ttk.Button(toolbar, text="暂停计时", width=9, state=tk.DISABLED)
-        self.btn_pause.pack(side=tk.LEFT, padx=2)
-        self.btn_done = ttk.Button(toolbar, text="完成任务", width=9)
-        self.btn_done.pack(side=tk.LEFT, padx=2)
-        self.btn_delete = ttk.Button(toolbar, text="删除任务", width=9)
-        self.btn_delete.pack(side=tk.LEFT, padx=2)
-
-        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=8, fill=tk.Y)
-
-        ttk.Label(toolbar, text="筛选:", font=FONT_NORMAL).pack(side=tk.LEFT, padx=(2, 2))
-        self.filter_var = tk.StringVar(value="全部")
-        filter_combo = ttk.Combobox(
-            toolbar, textvariable=self.filter_var, values=["全部", "待办", "进行中", "已完成"],
-            state="readonly", width=8
-        )
-        filter_combo.pack(side=tk.LEFT, padx=2)
-        self.filter_combo = filter_combo
-
-        ttk.Label(toolbar, text="排序:", font=FONT_NORMAL).pack(side=tk.LEFT, padx=(8, 2))
-        self.sort_var = tk.StringVar(value="创建时间")
-        sort_combo = ttk.Combobox(
-            toolbar, textvariable=self.sort_var,
-            values=["创建时间", "截止日期", "用时", "名称"],
-            state="readonly", width=10
-        )
-        sort_combo.pack(side=tk.LEFT, padx=2)
-        self.sort_combo = sort_combo
-
-        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=8, fill=tk.Y)
-        self.btn_clean = ttk.Button(toolbar, text="清理缓存", width=9)
-        self.btn_clean.pack(side=tk.LEFT, padx=2)
-
-    # --- Task List ---
-
-    def _build_task_list(self):
-        list_frame = ttk.Frame(self.root, padding=4)
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
-
-        columns = ("status", "title", "deadline", "elapsed", "created_at")
-        self.tree = ttk.Treeview(
-            list_frame, columns=columns, show="tree headings",
-            selectmode="browse", height=14
-        )
-        self.tree.column("#0", width=210, minwidth=160, stretch=False)
-        self.tree.heading("#0", text="")
-        self.tree.heading("status", text="")
-        self.tree.column("status", width=36, anchor=tk.CENTER, stretch=False)
-        self.tree.heading("title", text="任务名称")
-        self.tree.column("title", width=250, stretch=True)
-        self.tree.heading("deadline", text="截止时间")
-        self.tree.column("deadline", width=155, anchor=tk.CENTER, stretch=False)
-        self.tree.heading("elapsed", text="用时")
-        self.tree.column("elapsed", width=65, anchor=tk.CENTER, stretch=False)
-        self.tree.heading("created_at", text="创建")
-        self.tree.column("created_at", width=80, anchor=tk.CENTER, stretch=False)
-
-        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.tree.tag_configure("group", background=COLOR_GROUP, foreground=COLOR_GROUP_FG, font=FONT_BOLD)
-        self.tree.tag_configure("done", foreground=COLOR_DONE, font=("Microsoft YaHei UI", 10, "overstrike"))
-        self.tree.tag_configure("in_progress", foreground=COLOR_PROGRESS)
-        self.tree.tag_configure("overdue", foreground=COLOR_OVERDUE)
-        self.tree.tag_configure("row_even", background=COLOR_ROW_EVEN)
-        self.tree.tag_configure("row_odd", background=COLOR_ROW_ODD)
-
-        self._status_map = {"pending": "⬜", "in_progress": "▶", "done": "✅"}
-
-    # --- Timer Bar ---
-
-    def _build_timer_bar(self):
-        self.timer_frame = ttk.Frame(self.root, padding=4)
-        self.timer_frame.pack(fill=tk.X, padx=4)
-        ttk.Separator(self.timer_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 4))
-        self.timer_label = ttk.Label(self.timer_frame, text="⏱ 未开始计时", font=FONT_NORMAL)
-        self.timer_label.pack(side=tk.LEFT, padx=4)
-
-    # --- Status Bar ---
-
-    def _build_status_bar(self):
-        status_frame = ttk.Frame(self.root, padding=2)
-        status_frame.pack(fill=tk.X, padx=4, pady=(0, 2))
-        ttk.Separator(status_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(0, 2))
-        self.status_label = ttk.Label(status_frame, text="就绪", font=("Microsoft YaHei UI", 9))
-        self.status_label.pack(side=tk.LEFT, padx=4)
-
-    # --- Public methods for controller ---
+    # --- Public methods ---
 
     def refresh_list(self, groups):
         for item in self.tree.get_children():
@@ -412,18 +506,24 @@ class MainWindow:
 
     def set_timer_running(self, task_title, elapsed_str):
         self.timer_label.config(text=f"⏱ 正在计时: {task_title}  |  已用时: {elapsed_str}")
-        self.btn_timer.config(state=tk.DISABLED)
-        self.btn_pause.config(state=tk.NORMAL)
+        self.timer_frame.configure(bg="#dcfce7")
+        self.timer_label.configure(bg="#dcfce7", fg="#166534")
+        self.btn_timer.config(state="disabled")
+        self.btn_pause.config(state="normal")
 
     def set_timer_paused(self):
-        self.timer_label.config(text=f"⏱ 计时已暂停")
-        self.btn_timer.config(state=tk.NORMAL)
-        self.btn_pause.config(state=tk.DISABLED)
+        self.timer_label.config(text="⏱ 计时已暂停")
+        self.timer_frame.configure(bg=C_TIMER_BG)
+        self.timer_label.configure(bg=C_TIMER_BG, fg=C_TIMER_FG)
+        self.btn_timer.config(state="normal")
+        self.btn_pause.config(state="disabled")
 
     def set_timer_idle(self):
         self.timer_label.config(text="⏱ 未开始计时")
-        self.btn_timer.config(state=tk.NORMAL)
-        self.btn_pause.config(state=tk.DISABLED)
+        self.timer_frame.configure(bg=C_TIMER_BG)
+        self.timer_label.configure(bg=C_TIMER_BG, fg=C_TIMER_FG)
+        self.btn_timer.config(state="normal")
+        self.btn_pause.config(state="disabled")
 
     def update_status_bar(self, stats):
         parts = [
