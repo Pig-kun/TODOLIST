@@ -15,7 +15,8 @@ A lightweight offline TODO list desktop application built with Python + tkinter 
 
 ## Commands
 
-- All shell commands MUST use PowerShell, not bash. Use `powershell -Command "..."` for one-liners.
+- All shell commands MUST use PowerShell, not bash. The PowerShell path is `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`.
+- Git path: `C:\Program Files\Git\bin\git.exe`.
 - Commit after each completed feature with a clear commit message summarizing what was done.
 
 ```powershell
