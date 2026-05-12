@@ -21,6 +21,7 @@ class AppController:
         self._resume_timer_from_db()
         self._refresh()
         self._setup_keyboard()
+        self.view.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     # ---------- Event binding ----------
 
@@ -52,6 +53,10 @@ class AppController:
         root.bind("<Control-d>", lambda e: self.complete_task())
         root.bind("<Delete>", lambda e: self.delete_task())
         root.bind("<Control-q>", lambda e: root.quit())
+
+    def _on_close(self):
+        self._pause_running_timer()
+        self.view.root.quit()
 
     # ---------- Timer ----------
 
