@@ -278,11 +278,12 @@ class MainWindow:
 
     def select_task(self, task_id):
         children = self.tree.get_children()
-        idx = list(children).index(str(task_id))
-        if idx >= 0:
-            self.tree.selection_set(str(task_id))
-            self.tree.focus(str(task_id))
-            self.tree.see(str(task_id))
+        tid = str(task_id)
+        if tid not in children:
+            return
+        self.tree.selection_set(tid)
+        self.tree.focus(tid)
+        self.tree.see(tid)
 
     def set_timer_running(self, task_title, elapsed_str):
         self.timer_label.config(text=f"⏱ 正在计时: {task_title}  |  已用时: {elapsed_str}")
