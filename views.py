@@ -4,8 +4,18 @@ from datetime import datetime, timedelta
 
 FONT_NORMAL = ("Microsoft YaHei UI", 10)
 FONT_BOLD = ("Microsoft YaHei UI", 10, "bold")
-FONT_TITLE = ("Microsoft YaHei UI", 14, "bold")
+FONT_SMALL = ("Microsoft YaHei UI", 9)
 PAD = {"padx": 6, "pady": 4}
+
+COLOR_BG = "#f5f6f8"
+COLOR_GROUP = "#e3edfc"
+COLOR_GROUP_FG = "#1a3a5c"
+COLOR_ROW_ODD = "#ffffff"
+COLOR_ROW_EVEN = "#f8f9fb"
+COLOR_PROGRESS = "#1a73e8"
+COLOR_DONE = "#80868b"
+COLOR_OVERDUE = "#d93025"
+COLOR_DEADLINE = "#5f6368"
 
 
 def format_seconds(total_seconds):
@@ -219,9 +229,11 @@ class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("TODO 任务管理器")
-        self.root.geometry("860x560")
-        self.root.minsize(640, 400)
+        self.root.geometry("920x580")
+        self.root.minsize(720, 440)
+        self.root.configure(bg=COLOR_BG)
 
+        self._build_style()
         self._build_menu()
         self._build_toolbar()
         self._build_task_list()
@@ -229,6 +241,11 @@ class MainWindow:
         self._build_status_bar()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _build_style(self):
+        style = ttk.Style()
+        style.configure("Treeview", rowheight=28, font=FONT_NORMAL)
+        style.configure("Treeview.Heading", font=FONT_BOLD, padding=(4, 3))
 
     # --- Menu ---
 
@@ -307,28 +324,33 @@ class MainWindow:
 
         columns = ("status", "title", "deadline", "elapsed", "created_at")
         self.tree = ttk.Treeview(
-            list_frame, columns=columns, show="headings",
+            list_frame, columns=columns, show="tree headings",
             selectmode="browse", height=14
         )
-
-        self.tree.heading("status", text="状态")
-        self.tree.column("status", width=50, anchor=tk.CENTER, stretch=False)
+        self.tree.column("#0", width=210, minwidth=160, stretch=False)
+        self.tree.heading("#0", text="")
+        self.tree.heading("status", text="")
+        self.tree.column("status", width=36, anchor=tk.CENTER, stretch=False)
         self.tree.heading("title", text="任务名称")
-        self.tree.column("title", width=260, stretch=True)
+        self.tree.column("title", width=250, stretch=True)
         self.tree.heading("deadline", text="截止时间")
-        self.tree.column("deadline", width=140, anchor=tk.CENTER, stretch=False)
+        self.tree.column("deadline", width=155, anchor=tk.CENTER, stretch=False)
         self.tree.heading("elapsed", text="用时")
-        self.tree.column("elapsed", width=70, anchor=tk.CENTER, stretch=False)
-        self.tree.heading("created_at", text="创建时间")
-        self.tree.column("created_at", width=130, anchor=tk.CENTER, stretch=False)
+        self.tree.column("elapsed", width=65, anchor=tk.CENTER, stretch=False)
+        self.tree.heading("created_at", text="创建")
+        self.tree.column("created_at", width=80, anchor=tk.CENTER, stretch=False)
 
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.tree.tag_configure("done", foreground="gray", font=("Microsoft YaHei UI", 10, "overstrike"))
-        self.tree.tag_configure("in_progress", foreground="#1a73e8")
+        self.tree.tag_configure("group", background=COLOR_GROUP, foreground=COLOR_GROUP_FG, font=FONT_BOLD)
+        self.tree.tag_configure("done", foreground=COLOR_DONE, font=("Microsoft YaHei UI", 10, "overstrike"))
+        self.tree.tag_configure("in_progress", foreground=COLOR_PROGRESS)
+        self.tree.tag_configure("overdue", foreground=COLOR_OVERDUE)
+        self.tree.tag_configure("row_even", background=COLOR_ROW_EVEN)
+        self.tree.tag_configure("row_odd", background=COLOR_ROW_ODD)
 
         self._status_map = {"pending": "⬜", "in_progress": "▶", "done": "✅"}
 
@@ -352,30 +374,37 @@ class MainWindow:
 
     # --- Public methods for controller ---
 
-    def refresh_list(self, tasks):
+    def refresh_list(self, groups):
         for item in self.tree.get_children():
             self.tree.delete(item)
-        for t in tasks:
-            elapsed_str = format_seconds(t["elapsed_seconds"])
-            deadline_str = t.get("_deadline_display", "")
-            created_str = t["created_at"][:16] if t["created_at"] else ""
-            status_icon = self._status_map.get(t["status"], "⬜")
-            values = (status_icon, t["title"], deadline_str, elapsed_str, created_str)
-            tags = []
-            if t["status"] == "done":
-                tags.append("done")
-            elif t["status"] == "in_progress":
-                tags.append("in_progress")
-            self.tree.insert("", tk.END, iid=str(t["id"]), values=values, tags=tags)
+        for g in groups:
+            gid = g["id"]
+            self.tree.insert("", tk.END, iid=gid, text=g["label"], tags=("group",), open=True)
+            for i, t in enumerate(g["tasks"]):
+                elapsed_str = format_seconds(t["elapsed_seconds"])
+                deadline_str = t.get("_deadline_display", "")
+                created_str = t["created_at"][5:16] if t["created_at"] else ""
+                icon = self._status_map.get(t["status"], "⬜")
+                values = (icon, t["title"], deadline_str, elapsed_str, created_str)
+                tags = list(t.get("_tags", []))
+                tags.append("row_even" if i % 2 == 0 else "row_odd")
+                self.tree.insert(gid, tk.END, iid=str(t["id"]), text="", values=values, tags=tags)
 
     def get_selected_id(self):
         sel = self.tree.selection()
-        return int(sel[0]) if sel else None
+        if not sel:
+            return None
+        iid = sel[0]
+        if iid.startswith("grp_"):
+            return None
+        return int(iid)
 
     def select_task(self, task_id):
-        children = self.tree.get_children()
         tid = str(task_id)
-        if tid not in children:
+        parent = self.tree.parent(tid)
+        if parent:
+            self.tree.item(parent, open=True)
+        if not self.tree.exists(tid):
             return
         self.tree.selection_set(tid)
         self.tree.focus(tid)

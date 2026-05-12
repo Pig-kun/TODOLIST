@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import models
 from views import format_seconds
 
@@ -6,6 +6,7 @@ STATUS_NAMES = {"all": "全部", "pending": "待办", "in_progress": "进行中"
 SORT_NAMES = {"created_at": "创建时间", "deadline": "截止日期", "elapsed_seconds": "用时", "title": "名称"}
 STATUS_MAP = {v: k for k, v in STATUS_NAMES.items()}
 SORT_MAP = {v: k for k, v in SORT_NAMES.items()}
+WEEKDAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
 
 
 class AppController:
@@ -221,27 +222,63 @@ class AppController:
             dl_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M")
         except ValueError:
             return dl
-        display = dl_dt.strftime("%m-%d %H:%M")
+        wd = WEEKDAYS[dl_dt.weekday()]
+        disp = dl_dt.strftime(f"%m-%d {wd} %H:%M")
         if task["status"] == "done":
-            return display
+            return disp
         now = datetime.now()
         diff = dl_dt - now
-        if diff.total_seconds() < 0:
-            total_min = int(abs(diff.total_seconds()) // 60)
+        secs = diff.total_seconds()
+        if secs < 0:
+            total_min = int(abs(secs) // 60)
+            task.setdefault("_tags", []).append("overdue")
             if total_min < 60:
-                return f"{display} 超时{total_min}分"
+                return f"{disp}\n超时{total_min}分"
             elif total_min < 1440:
-                return f"{display} 超时{total_min // 60}时"
+                return f"{disp}\n超时{total_min // 60}时"
             else:
-                return f"{display} 超时{total_min // 1440}天"
+                return f"{disp}\n超时{total_min // 1440}天"
         else:
-            total_min = int(diff.total_seconds() // 60)
+            total_min = int(secs // 60)
             if total_min < 60:
-                return f"{display} 剩{total_min}分"
+                return f"{disp}\n剩{total_min}分"
             elif total_min < 1440:
-                return f"{display} 剩{total_min // 60}时"
+                return f"{disp}\n剩{total_min // 60}时"
             else:
-                return f"{display} 剩{total_min // 1440}天"
+                return f"{disp}\n剩{total_min // 1440}天"
+
+    def _group_key(self, task):
+        dl = task.get("deadline")
+        if not dl:
+            return "none"
+        try:
+            dl_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M")
+        except ValueError:
+            return "none"
+        today = date.today()
+        dl_date = dl_dt.date()
+        if dl_date == today:
+            return "today"
+        elif dl_date == today + timedelta(days=1):
+            return "tomorrow"
+        else:
+            return dl_date.isoformat()
+
+    def _group_label(self, key):
+        if key == "today":
+            today = date.today()
+            return f"今天 {today:%m-%d} ({WEEKDAYS[today.weekday()]})"
+        elif key == "tomorrow":
+            tmr = date.today() + timedelta(days=1)
+            return f"明天 {tmr:%m-%d} ({WEEKDAYS[tmr.weekday()]})"
+        elif key == "none":
+            return "无截止日期"
+        else:
+            try:
+                dt = date.fromisoformat(key)
+                return f"{dt:%m-%d} ({WEEKDAYS[dt.weekday()]})"
+            except ValueError:
+                return key
 
     def _refresh(self):
         status_cn = self.view.filter_var.get()
@@ -250,7 +287,35 @@ class AppController:
         sort_by = SORT_MAP.get(sort_cn, "created_at")
         tasks = models.get_tasks(status=status, sort_by=sort_by)
         for t in tasks:
+            t["_tags"] = []
+            if t["status"] == "done":
+                t["_tags"].append("done")
+            elif t["status"] == "in_progress":
+                t["_tags"].append("in_progress")
             t["_deadline_display"] = self._format_deadline(t)
-        self.view.refresh_list(tasks)
+
+        grouped = {}
+        order = []
+        for t in tasks:
+            key = self._group_key(t)
+            if key not in grouped:
+                grouped[key] = []
+                order.append(key)
+            grouped[key].append(t)
+
+        def _key_sort(k):
+            if k == "today":
+                return (0, "")
+            elif k == "tomorrow":
+                return (1, "")
+            elif k == "none":
+                return (99, "")
+            else:
+                return (2, k)
+
+        order.sort(key=_key_sort)
+
+        groups = [{"id": f"grp_{k}", "key": k, "label": self._group_label(k), "tasks": grouped[k]} for k in order if grouped[k]]
+        self.view.refresh_list(groups)
         stats = models.get_stats()
         self.view.update_status_bar(stats)
