@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import models
 from views import format_seconds
 
@@ -22,6 +22,7 @@ class AppController:
         self._refresh()
         self._setup_keyboard()
         self.view.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._start_reminder_check()
 
     # ---------- Event binding ----------
 
@@ -126,6 +127,22 @@ class AppController:
         self.view.set_timer_idle()
         self._refresh()
 
+    # ---------- Reminder ----------
+
+    def _start_reminder_check(self):
+        self._check_reminders()
+
+    def _check_reminders(self):
+        reminders = models.get_pending_reminders()
+        for task in reminders:
+            dl = task["deadline"]
+            models.mark_reminder_fired(task["id"])
+            self.view.show_info(
+                "倒计时提醒",
+                f"任务「{task['title']}」的截止时间即将到达！\n\n截止时间: {dl}",
+            )
+        self.view.root.after(30000, self._check_reminders)
+
     # ---------- Task CRUD ----------
 
     def add_task(self):
@@ -144,6 +161,7 @@ class AppController:
         dialog_result = self._show_task_dialog(task)
         if dialog_result is None:
             return
+        dialog_result["reminder_fired"] = 0
         models.update_task(task_id, **dialog_result)
         self._refresh()
 
@@ -195,12 +213,44 @@ class AppController:
         self.view.root.wait_window(dlg)
         return dlg.result
 
+    def _format_deadline(self, task):
+        dl = task.get("deadline")
+        if not dl:
+            return ""
+        try:
+            dl_dt = datetime.strptime(dl, "%Y-%m-%d %H:%M")
+        except ValueError:
+            return dl
+        display = dl_dt.strftime("%m-%d %H:%M")
+        if task["status"] == "done":
+            return display
+        now = datetime.now()
+        diff = dl_dt - now
+        if diff.total_seconds() < 0:
+            total_min = int(abs(diff.total_seconds()) // 60)
+            if total_min < 60:
+                return f"{display} 超时{total_min}分"
+            elif total_min < 1440:
+                return f"{display} 超时{total_min // 60}时"
+            else:
+                return f"{display} 超时{total_min // 1440}天"
+        else:
+            total_min = int(diff.total_seconds() // 60)
+            if total_min < 60:
+                return f"{display} 剩{total_min}分"
+            elif total_min < 1440:
+                return f"{display} 剩{total_min // 60}时"
+            else:
+                return f"{display} 剩{total_min // 1440}天"
+
     def _refresh(self):
         status_cn = self.view.filter_var.get()
         sort_cn = self.view.sort_var.get()
         status = STATUS_MAP.get(status_cn, "all")
         sort_by = SORT_MAP.get(sort_cn, "created_at")
         tasks = models.get_tasks(status=status, sort_by=sort_by)
+        for t in tasks:
+            t["_deadline_display"] = self._format_deadline(t)
         self.view.refresh_list(tasks)
         stats = models.get_stats()
         self.view.update_status_bar(stats)

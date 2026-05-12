@@ -27,19 +27,30 @@ def init_db():
             deadline TEXT,
             estimated_minutes INTEGER DEFAULT 0,
             elapsed_seconds  INTEGER DEFAULT 0,
-            timer_started_at TEXT
+            timer_started_at TEXT,
+            reminder_minutes INTEGER DEFAULT 0,
+            reminder_fired  INTEGER DEFAULT 0
         )
     """)
     conn.commit()
+    _migrate(conn)
     conn.close()
 
 
-def add_task(title, description="", deadline=None, estimated_minutes=0):
+def _migrate(conn):
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(tasks)")}
+    if "reminder_minutes" not in cols:
+        conn.execute("ALTER TABLE tasks ADD COLUMN reminder_minutes INTEGER DEFAULT 0")
+    if "reminder_fired" not in cols:
+        conn.execute("ALTER TABLE tasks ADD COLUMN reminder_fired INTEGER DEFAULT 0")
+
+
+def add_task(title, description="", deadline=None, estimated_minutes=0, reminder_minutes=0):
     conn = _get_conn()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
-        "INSERT INTO tasks (title, description, deadline, estimated_minutes, created_at) VALUES (?, ?, ?, ?, ?)",
-        (title, description, deadline, estimated_minutes, now),
+        "INSERT INTO tasks (title, description, deadline, estimated_minutes, created_at, reminder_minutes) VALUES (?, ?, ?, ?, ?, ?)",
+        (title, description, deadline, estimated_minutes, now, reminder_minutes),
     )
     conn.commit()
     conn.close()
@@ -157,6 +168,25 @@ def cleanup_old_tasks(days=30):
     conn.commit()
     conn.close()
     return count
+
+
+def get_pending_reminders():
+    conn = _get_conn()
+    rows = conn.execute(
+        """SELECT * FROM tasks
+           WHERE status IN ('pending', 'in_progress')
+             AND deadline IS NOT NULL
+             AND reminder_minutes > 0
+             AND reminder_fired = 0
+             AND datetime('now', 'localtime', '+' || reminder_minutes || ' minutes') >= datetime(deadline)
+           ORDER BY deadline ASC"""
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def mark_reminder_fired(task_id):
+    update_task(task_id, reminder_fired=1)
 
 
 def vacuum_db():
