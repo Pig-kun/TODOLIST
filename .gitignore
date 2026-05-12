@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# SQLite database
+data/*.db
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Environment
+.env
+.env.local
