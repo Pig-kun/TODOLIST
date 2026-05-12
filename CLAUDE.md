@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-A lightweight offline TODO list desktop application built with Python + tkinter + SQLite, running on Windows.
+A lightweight offline TODO list desktop application built with Python + tkinter + SQLite, running on Windows. All UI text is in Chinese.
 
 ## Tech Stack
 
@@ -24,7 +24,20 @@ A lightweight offline TODO list desktop application built with Python + tkinter 
 python main.py
 ```
 
-No external dependencies. tkinter, sqlite3, and json are all Python standard library modules.
+No external dependencies for development. tkinter, sqlite3, and json are all Python standard library modules.
+
+## Packaging
+
+```powershell
+# Install PyInstaller (one-time)
+pip install pyinstaller
+
+# Package as single .exe file
+pyinstaller --onefile --windowed --name TODOList main.py
+# Output: dist/TODOList.exe
+```
+
+The .exe bundles Python and all dependencies, so end users don't need Python installed.
 
 ## Project Architecture
 
@@ -57,3 +70,16 @@ Cache cleaning:
 - Remove completed tasks older than a configurable threshold
 - Vacuum SQLite database to reclaim space
 - Optionally reset timer history
+
+## UI Language
+
+All interface text (labels, buttons, menus, dialogs, status bar, messages) must be in Chinese.
+
+## README
+
+After all features are complete, write README.md with:
+- App description and features overview
+- Screenshot or UI description
+- How to run from source (`python main.py`)
+- How to use the packaged .exe
+- Basic usage guide (add tasks, start timer, clean cache, etc.)
